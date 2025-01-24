@@ -110,6 +110,6 @@ with open("output.txt", 'w') as output:
 
     output.write("\n")
     output.write(f"#hits: {hits}\n")
-    output.write(f"#miss: {misses}\n")
+    output.write(f"#miss: {misses}")
 
 print("Simulação concluída. Resultados salvos em output.txt.")
