@@ -49,59 +49,58 @@ except FileNotFoundError:
 hits = 0
 misses = 0
 
-tags = []
-indices_conjuntos = []
-
 log_bloco = int(math.log2(tamanho_bloco))
 log_conjuntos = int(math.log2(quantidade_conjuntos)) if quantidade_conjuntos > 1 else 0
 
-for endereco_binario in array_de_acessos:
-    # Remover os bits do offset do bloco
-    tag_bin = endereco_binario[:-log_bloco] + '0' * log_bloco
-    tags.append(tag_bin)
+with open("output.txt", 'w') as output:
+    for endereco_binario in array_de_acessos:
+        # Remover os bits do offset do bloco
+        tag_bin = endereco_binario[:-log_bloco] + '0' * log_bloco
+        tag_hex = format(int(tag_bin, 2), '08X')
 
-    # Determinar o índice do conjunto
-    if quantidade_conjuntos > 1:
-        indice_conjunto_bin = endereco_binario[-(log_bloco + log_conjuntos):-log_bloco]
-        indice_conjunto = int(indice_conjunto_bin, 2)
-    else:
-        indice_conjunto = -1
+        # Determinar o índice do conjunto
+        if quantidade_conjuntos > 1:
+            indice_conjunto_bin = endereco_binario[-(log_bloco + log_conjuntos):-log_bloco]
+            indice_conjunto = int(indice_conjunto_bin, 2)
+        else:
+            indice_conjunto = -1  # Cache totalmente associativa
 
-    indices_conjuntos.append(indice_conjunto)
+        linha_inicial = indice_conjunto * tamanho_conjuntos if indice_conjunto != -1 else 0
+        linha_final = linha_inicial + tamanho_conjuntos
 
-    # Converter a tag para hexadecimal
-    tag_hex = format(int(tag_bin, 2), '08X')
-
-    # Acesso à cache
-    linha_inicial = indice_conjunto * tamanho_conjuntos if indice_conjunto != -1 else 0
-    linha_final = linha_inicial + tamanho_conjuntos
-
-    hit = False
-    for i in range(linha_inicial, linha_final):
-        if cache[i]['V'] == 1 and cache[i]['tag'] == tag_hex:
-            hits += 1
-            hit = True
-            break
-
-    if not hit:
-        misses += 1
+        # Verificar se há HIT na cache
+        hit = False
         for i in range(linha_inicial, linha_final):
-            if cache[i]['V'] == 0:
-                cache[i]['V'] = 1
-                cache[i]['tag'] = tag_hex
+            if cache[i]['V'] == 1 and cache[i]['tag'] == tag_hex:
+                hits += 1
+                hit = True
                 break
 
-#===============================================================================
-# Geração do arquivo de saída
-#===============================================================================
-with open("output.txt", 'w') as output:
-    for i in range(quantidade_linhas):
-        output.write(f"{i:03d} {cache[i]['V']} ")
-        if cache[i]['V'] == 1:
-            output.write(f"0x{cache[i]['tag']}\n")
-        else:
-            output.write("\n")
-    
+        if not hit:
+            misses += 1
+            substituido = False
+            for i in range(linha_inicial, linha_final):
+                if cache[i]['V'] == 0:
+                    cache[i]['V'] = 1
+                    cache[i]['tag'] = tag_hex
+                    substituido = True
+                    break
+
+            if not substituido:
+                # Política FIFO (First In First Out)
+                cache[linha_inicial]['tag'] = tag_hex
+
+        # Escrever o estado atual da cache no arquivo de saída
+        output.write("================\n")
+        output.write("IDX V ** ADDR **\n")
+        for i in range(quantidade_linhas):
+            output.write(f"{i:03d} {cache[i]['V']} ")
+            if cache[i]['V'] == 1:
+                output.write(f"0x{cache[i]['tag']}\n")
+            else:
+                output.write("\n")
+
+    output.write("================\n")
     output.write(f"#hits: {hits}\n")
     output.write(f"#miss: {misses}\n")
 
