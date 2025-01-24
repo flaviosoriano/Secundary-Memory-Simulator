@@ -35,8 +35,7 @@ try:
 
             try:
                 valor_decimal = int(hexadecimal, 16)
-                valor_binario = format(valor_decimal, '032b')
-                array_de_acessos.append(valor_binario)
+                array_de_acessos.append(valor_decimal)
             except ValueError:
                 print(f"Erro ao converter a linha: {linha.strip()}")
 except FileNotFoundError:
@@ -53,17 +52,19 @@ log_bloco = int(math.log2(tamanho_bloco))
 log_conjuntos = int(math.log2(quantidade_conjuntos)) if quantidade_conjuntos > 1 else 0
 
 with open("output.txt", 'w') as output:
-    for endereco_binario in array_de_acessos:
-        # Remover os bits do offset do bloco
-        tag_bin = endereco_binario[:-log_bloco] + '0' * log_bloco
-        tag_hex = format(int(tag_bin, 2), '08X')
+    for endereco_decimal in array_de_acessos:
+        # Remover os bits de deslocamento do bloco
+        endereco_alinhado = endereco_decimal & ~(tamanho_bloco - 1)
 
-        # Determinar o índice do conjunto
+        # Determinar o índice do conjunto se necessário
         if quantidade_conjuntos > 1:
-            indice_conjunto_bin = endereco_binario[-(log_bloco + log_conjuntos):-log_bloco]
-            indice_conjunto = int(indice_conjunto_bin, 2)
+            indice_conjunto = (endereco_alinhado // tamanho_bloco) % quantidade_conjuntos
         else:
             indice_conjunto = -1  # Cache totalmente associativa
+
+        # Calcular a tag ignorando os bits de deslocamento e conjunto
+        tag = endereco_alinhado >> (log_bloco + log_conjuntos)
+        tag_hex = format(tag, '08X')
 
         linha_inicial = indice_conjunto * tamanho_conjuntos if indice_conjunto != -1 else 0
         linha_final = linha_inicial + tamanho_conjuntos
