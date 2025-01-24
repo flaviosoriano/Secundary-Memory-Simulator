@@ -19,7 +19,9 @@ else:
 #===============================================================================
 # Inicialização da cache
 #===============================================================================
-cache = [{'V': 0, 'tag': None} for _ in range(quantidade_linhas)]
+cache = [{'V': 0, 'tag': None, 'idade': 0} for _ in range(quantidade_linhas)]
+
+tempo_atual = 0  # Contador global de tempo para FIFO
 
 #===============================================================================
 # Leitura do arquivo de acessos à memória
@@ -53,6 +55,8 @@ log_conjuntos = int(math.log2(quantidade_conjuntos)) if quantidade_conjuntos > 1
 
 with open("output.txt", 'w') as output:
     for endereco_decimal in array_de_acessos:
+        tempo_atual += 1  # Incrementar o tempo a cada acesso
+        
         # Remover os bits de deslocamento do bloco
         endereco_alinhado = endereco_decimal & ~(tamanho_bloco - 1)
 
@@ -88,20 +92,23 @@ with open("output.txt", 'w') as output:
                     break
 
             if not substituido:
-                # Política FIFO (First In First Out)
-                cache[linha_inicial]['tag'] = tag_hex
+                # Implementação correta da política FIFO
+                # Encontrar a linha mais antiga no conjunto
+                linha_fifo = min(range(linha_inicial, linha_final), key=lambda x: cache[x]['idade'])
+                cache[linha_fifo]['tag'] = tag_hex
+                cache[linha_fifo]['idade'] = tempo_atual  # Atualizar com o novo tempo
 
         # Escrever o estado atual da cache no arquivo de saída
         output.write("================\n")
         output.write("IDX V ** ADDR **\n")
         for i in range(quantidade_linhas):
-            output.write(f"{i:03d} {cache[i]['V']} ")
+            output.write(f"{i:03d} {cache[i]['V']}")
             if cache[i]['V'] == 1:
-                output.write(f"0x{cache[i]['tag']}\n")
+                output.write(f" 0x{cache[i]['tag']}\n")
             else:
                 output.write("\n")
 
-    output.write("================\n")
+    output.write("\n")
     output.write(f"#hits: {hits}\n")
     output.write(f"#miss: {misses}\n")
 
