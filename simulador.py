@@ -110,6 +110,4 @@ with open("output.txt", 'w') as output:
 
     output.write("\n")
     output.write(f"#hits: {hits}\n")
-    output.write(f"#miss: {misses}\n")
-
-print("Simulação concluída. Resultados salvos em output.txt.")
+    output.write(f"#miss: {misses}")
